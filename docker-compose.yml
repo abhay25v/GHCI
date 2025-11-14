@@ -1,0 +1,26 @@
+version: "3.9"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_NAME=${MODEL_NAME:-typeform/distilbert-base-uncased-mnli}
+      - DEVICE=${DEVICE:--1}
+      - TAXONOMY_PATH=${TAXONOMY_PATH:-ati_engine/taxonomy/sample_taxonomy.yaml}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - ATI_API_BASE=http://api:8000
+    depends_on:
+      - api
+    restart: unless-stopped

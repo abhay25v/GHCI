@@ -1,0 +1,17 @@
+# Example taxonomy for transaction categorization
+# You can replace with your domain-specific taxonomy at runtime via TAXONOMY_PATH
+Food & Dining:
+  keywords: ["restaurant", "cafe", "diner", "food", "uber eats", "doordash", "grubhub"]
+  subcategories: ["Restaurants", "Groceries", "Delivery"]
+Transport:
+  keywords: ["uber", "lyft", "taxi", "metro", "bus", "train", "fuel", "gas"]
+  subcategories: ["Rideshare", "Public Transit", "Fuel"]
+Shopping:
+  keywords: ["amazon", "walmart", "target", "store", "mall", "purchase"]
+  subcategories: ["Online", "Retail"]
+Bills & Utilities:
+  keywords: ["electric", "water", "internet", "phone", "bill", "utility"]
+  subcategories: ["Electric", "Water", "Internet", "Phone"]
+Entertainment:
+  keywords: ["netflix", "spotify", "movie", "cinema", "music", "game"]
+  subcategories: ["Streaming", "Movies", "Music", "Gaming"]

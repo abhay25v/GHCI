@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.build/
+build/
+dist/
+.eggs/
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+.env
+
+# VSCode
+.vscode/
+
+# Python notebooks
+.ipynb_checkpoints/
+
+# Pytest cache
+.pytest_cache/
+
+# SHAP artifacts
+shap_outputs/
+
+# Local configs
+.env.local
+
+# Streamlit
+.streamlit/
+
+# Docker
+**/.pytest_cache/
+**/__pycache__/
