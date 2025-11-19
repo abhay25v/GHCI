@@ -15,6 +15,23 @@ logger = logging.getLogger(__name__)
 class ShapExplainer:
     def __init__(self, service: InferenceService) -> None:
         self.service = service
+        self._tokenizer = None
+
+    def _get_tokenizer(self):
+        if self._tokenizer is not None:
+            return self._tokenizer
+        # Try to pull tokenizer from zero-shot pipeline; fallback to text-classification; else None
+        try:
+            pipe = self.service.model._get_zero_shot()
+            self._tokenizer = getattr(pipe, "tokenizer", None)
+        except Exception:
+            try:
+                pipe = self.service.model._get_text_class()
+                self._tokenizer = getattr(pipe, "tokenizer", None)
+            except Exception:
+                logger.exception("Failed to acquire tokenizer for SHAP; will use simple tokenizer")
+                self._tokenizer = None
+        return self._tokenizer
 
     def _target_probability_fn(self, target_label: str):
         def f(inputs: List[str]) -> np.ndarray:
@@ -30,27 +47,42 @@ class ShapExplainer:
         return f
 
     def explain(self, text: str, target_label: str, max_tokens: int = 50) -> ExplainResponse:
-        # SHAP text masker; keeps runtime bounded
-        masker = shap.maskers.Text(tokenizer="auto")
+        # Try to get a tokenizer; fallback to simple tokenization
+        tokenizer = self._get_tokenizer()
+        masker = shap.maskers.Text(tokenizer=tokenizer if tokenizer else "simple")
         f = self._target_probability_fn(target_label)
-        explainer = shap.Explainer(f, masker)
-        shap_values = explainer([text])
+        shap_values = None
+        explainer = None
+        shap_error: str | None = None
+        try:
+            explainer = shap.Explainer(f, masker)
+            shap_values = explainer([text])
+        except Exception as e:
+            shap_error = str(e)
+            logger.exception("SHAP explanation failed; returning empty attributions")
 
         # Extract token attributions from first example
         attributions: List[TokenAttribution] = []
-        try:
-            tokens: List[str] = shap_values.data[0]
-            values: List[float] = shap_values.values[0].tolist()
-            pairs: List[Tuple[str, float]] = list(zip(tokens, values))
-            # Sort by absolute importance and truncate
-            pairs.sort(key=lambda x: abs(x[1]), reverse=True)
-            pairs = pairs[:max_tokens]
-            attributions = [TokenAttribution(token=t, value=float(v)) for t, v in pairs]
-        except Exception:
-            logger.exception("Failed to extract SHAP token attributions")
+        if shap_values is not None:
+            try:
+                tokens: List[str] = shap_values.data[0]
+                values: List[float] = shap_values.values[0].tolist()
+                pairs: List[Tuple[str, float]] = list(zip(tokens, values))
+                pairs.sort(key=lambda x: abs(x[1]), reverse=True)
+                pairs = pairs[:max_tokens]
+                attributions = [TokenAttribution(token=t, value=float(v)) for t, v in pairs]
+            except Exception:
+                logger.exception("Failed to extract SHAP token attributions")
+        else:
+            # Basic whitespace token fallback for transparency
+            simple_tokens = text.split()
+            for t in simple_tokens[: max_tokens]:
+                attributions.append(TokenAttribution(token=t, value=0.0))
 
         summary: Dict[str, Any] = {
             "num_tokens": len(attributions),
             "method": "shap_text_masker",
+            "fallback": shap_values is None,
+            "error": shap_error,
         }
         return ExplainResponse(input_text=text, target_label=target_label, attributions=attributions, summary=summary)

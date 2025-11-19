@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
     APP_VERSION: str = Field("0.1.0", description="Application version")
     MODEL_NAME: str = Field(
         default=os.getenv("MODEL_NAME", "typeform/distilbert-base-uncased-mnli"),
@@ -19,10 +21,6 @@ class Settings(BaseSettings):
     MAX_CANDIDATES: int = Field(20, description="Maximum number of taxonomy labels to consider")
     SHAP_MAX_SAMPLES: int = Field(50, description="Maximum number of samples for SHAP background")
     LOG_LEVEL: str = Field("INFO", description="Logging level")
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
 
 
 @lru_cache()
